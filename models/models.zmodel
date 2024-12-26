@@ -1,0 +1,138 @@
+enum UserStatus {
+    INVITED
+    VERIFIED
+}
+
+model User {
+    id               String            @id @default(uuid())
+    name             String?
+    email            String?           @unique
+    pictureUrl       String?           @default('https://i.imgur.com/ZdJSK3Y.jpeg')
+    tokenInvitation  String?
+
+    stripeCustomerId String?
+
+    status           UserStatus        @default(VERIFIED)
+
+    // this is the role of the user for the application
+    globalRole       String            @default('USER')
+    password         String?           @password @omit
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt @default(now())
+
+    pwaSubscriptions PwaSubscription[] @relation("user")
+
+    attendances      Attendance[]      @relation("user")
+    fees             Fee[]             @relation("user")
+    results          Result[]          @relation("user")
+    schedules        Schedule[]        @relation("user")
+
+    @@auth()
+    @@allow("all", auth().id == this.id)
+    @@allow('all', auth().globalRole == 'ADMIN')
+
+    //we only allow that user to register if they don't create an admin role
+    @@allow("create", globalRole != 'ADMIN')
+    @@allow("read", true)
+}
+
+model Rule {
+
+    id             String   @id @default(uuid())
+    title          String
+    description    String?
+    applicableRole String
+
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Subject {
+
+    id          String     @id @default(uuid())
+    name        String
+    description String?
+
+    results     Result[]   @relation("subject")
+    schedules   Schedule[] @relation("subject")
+    createdAt   DateTime   @default(now())
+    updatedAt   DateTime   @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Attendance {
+
+    id        String   @id @default(uuid())
+    date      String
+    status    String
+
+    userId    String
+    user      User?    @relation(fields: [userId], references: [id], name: "user")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Fee {
+
+    id        String   @id @default(uuid())
+    amount    String
+    dueDate   String
+    status    String
+    type      String
+
+    userId    String
+    user      User?    @relation(fields: [userId], references: [id], name: "user")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Result {
+
+    id        String   @id @default(uuid())
+    score     String
+    term      String
+
+    userId    String
+    user      User?    @relation(fields: [userId], references: [id], name: "user")
+    subjectId String
+    subject   Subject? @relation(fields: [subjectId], references: [id], name: "subject")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model Schedule {
+
+    id        String   @id @default(uuid())
+    dayOfWeek Float
+    startTime String
+    endTime   String
+
+    userId    String
+    user      User?    @relation(fields: [userId], references: [id], name: "user")
+    subjectId String
+    subject   Subject? @relation(fields: [subjectId], references: [id], name: "subject")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+    @@allow("all", true)
+}
+
+model PwaSubscription {
+    id        String   @id @default(uuid())
+    content   String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt @default(now())
+
+    userId    String   @default(auth().id)
+    user      User     @relation(fields: [userId], references: [id], name: 'user')
+
+    @@allow("all", true)
+}
+
